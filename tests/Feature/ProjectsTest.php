@@ -10,19 +10,32 @@ class ProjectsTest extends TestCase
 {
 	use WithFaker, RefreshDatabase;
 
+	public function setup() : void
+	{
+		parent::setup();
+		$this->attributes = factory('App\Project')->raw();
+	}
+
     public function testUserCanCreateAProject()
     {
 		$this->withoutExceptionHandling();
 
-		$attributes = [
-			'title' => $this->faker->sentence,
-			'description' => $this->faker->paragraph,
-		];
+        $this->post('/projects', $this->attributes)->assertRedirect('/projects');
 
-        $this->post('/projects', $attributes)->assertRedirect('/projects');
+		$this->assertDatabaseHas('projects', $this->attributes);
 
-		$this->assertDatabaseHas('projects', $attributes);
+		$this->get('/projects')->assertSee($this->attributes['title']);
+	}
+	
+	public function testAProjectRequiresATitle()
+	{
+		$this->attributes['title'] = '';
+		$this->post('/projects', $this->attributes)->assertSessionHasErrors('title');
+	}
 
-		$this->get('/projects')->assertSee($attributes['title']);
-    }
+	public function testAProjectRequiresADescription()
+	{
+		$this->attributes['description'] = '';
+		$this->post('/projects', $this->attributes)->assertSessionHasErrors('description');
+	}
 }
